@@ -128,8 +128,8 @@ erDiagram
 - `grant_patient_discount`, one payout decision per claim, carrying `referrer_id` so the index can
   refuse a second 80.
 - `verification_matrix`, the 16 rows above. It has no foreign key to anything. The four booleans
-  look it up at decision time and the answer is copied onto the decision, so a later edit to the
-  rule cannot rewrite what a past reviewer was shown.
+  look it up at decision time, and the answer is copied onto the decision. A later edit to the rule
+  cannot rewrite what a past reviewer was shown.
 
 A claim exists from the moment someone clicks, before any account does. That is the repair: today
 a referral is a browsing session, and a closed tab ends it.
