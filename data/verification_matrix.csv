@@ -1,0 +1,17 @@
+first_name_match,last_name_match,address_match,postcode_match,approved,note
+true,true,true,true,manual,"could be father and son, same name, same address"
+true,true,true,false,manual,"could be the same person, sending to a different postcode with coincidence same address"
+true,true,false,true,manual,neighbours with same names
+true,true,false,false,manual,could be the same person sending to a different address
+true,false,true,true,yes,
+true,false,true,false,yes,
+true,false,false,true,yes,neighbours with the same first name
+true,false,false,false,yes,
+false,true,true,true,yes,family members
+false,true,true,false,yes,
+false,true,false,true,yes,
+false,true,false,false,yes,
+false,false,true,true,yes,unrelated housemates
+false,false,true,false,yes,
+false,false,false,true,yes,
+false,false,false,false,yes,

@@ -15,7 +15,7 @@ drop table if exists public.verification_matrix cascade;
 drop table if exists public.friends cascade;
 drop table if exists public.claims cascade;
 drop table if exists public.patients cascade;
-drop function if exists public.successful_referrals(public.patients);
+drop function if exists public.sync_successful_referrals() cascade;
 drop function if exists public.is_first_claim(uuid);
 drop function if exists public.decide_friend(uuid, boolean);
 drop function if exists public.decide_patient(uuid);
@@ -26,16 +26,19 @@ drop function if exists public.decide_patient(uuid);
 -- this file, so it can never drift from the payout log.
 
 create table public.patients (
-  patient_id          uuid primary key default gen_random_uuid(),
-  referrer_id         uuid references public.patients(patient_id),  -- who referred them. At most one, per the sheet
-  first_name          text not null,
-  last_name           text not null,
-  email               text unique not null,
-  phone               text unique not null,
-  address_line        text,
-  postcode            text,
-  payment_fingerprint text,
-  customer_since      timestamptz not null default now()
+  patient_id           uuid primary key default gen_random_uuid(),
+  referrer_id          uuid references public.patients(patient_id),  -- who referred them. Null only for the root account
+  -- Maintained by the trigger at the bottom of this file, never written by hand: it is
+  -- recomputed from released payouts every time one changes, so it cannot drift.
+  successful_referrals int not null default 0,
+  first_name           text not null,
+  last_name            text not null,
+  email                text unique not null,
+  phone                text unique not null,
+  address_line         text,
+  postcode             text,
+  payment_fingerprint  text,
+  customer_since       timestamptz not null default now()
 );
 
 -- ------------------------------------------------------------------ claims
@@ -141,13 +144,27 @@ create unique index one_first_claim_per_referrer
 
 -- ----------------------------------------------------------------- functions
 
--- The counter that cannot drift. Exposed by the API as a computed field on patients:
--- GET /patients?select=*,successful_referrals
-create or replace function public.successful_referrals(p public.patients)
-returns int language sql stable as $$
-  select count(*)::int from public.grant_patient_discount g
-   where g.referrer_id = p.patient_id and g.release_patient_discount;
-$$;
+-- The counter that cannot drift: a real column on patients, recomputed from released
+-- payouts by this trigger every time one changes. Visible in the Table Editor, and no code
+-- path increments it by hand.
+create or replace function public.sync_successful_referrals()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_ins uuid; v_del uuid;   -- NEW exists only on insert/update, OLD only on update/delete
+begin
+  if tg_op in ('INSERT','UPDATE') then v_ins := new.referrer_id; end if;
+  if tg_op in ('UPDATE','DELETE') then v_del := old.referrer_id; end if;
+  update public.patients p
+     set successful_referrals =
+       (select count(*) from public.grant_patient_discount g
+         where g.referrer_id = p.patient_id and g.release_patient_discount)
+   where p.patient_id = any (array[v_ins, v_del]);
+  return null;
+end $$;
+
+create trigger trg_sync_successful_referrals
+after insert or update or delete on public.grant_patient_discount
+for each row execute function public.sync_successful_referrals();
 
 create or replace function public.is_first_claim(p_referrer_id uuid)
 returns boolean language sql stable as $$
@@ -334,7 +351,7 @@ create policy "public read" on public.grant_friend_discount  for select to anon 
 create policy "public read" on public.grant_patient_discount for select to anon using (true);
 
 grant select on all tables in schema public to anon;
-grant execute on function public.successful_referrals(public.patients) to anon;
 grant execute on function public.is_first_claim(uuid) to anon;
+revoke execute on function public.sync_successful_referrals() from public, anon;
 revoke execute on function public.decide_friend(uuid, boolean) from public, anon;
 revoke execute on function public.decide_patient(uuid) from public, anon;
