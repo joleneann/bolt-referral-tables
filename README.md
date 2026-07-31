@@ -36,9 +36,12 @@ repository, not written by hand.
 
 ## Look at what it decided
 
-**[`results.md`](results.md) is the nineteen cases as the database answered them.** Every
-comparison made, every verdict, and the reason stored at the time. It is written by a script that
-reads the live tables, so it cannot drift away from what the system does.
+**[The nineteen cases on one page](https://joleneann.github.io/bolt-referral-tables/cases.html)**,
+each one a situation and what the system did about it.
+
+**[`results.md`](results.md) is the same nineteen in full.** Every comparison made, every verdict,
+and the reason stored at the time. Both pages are written by a script that reads the live tables,
+so neither can drift away from what the system does.
 
 Six of the nineteen went to a human, and every one of them turned on a full name. Three matched
 an address or a postcode without matching both names. None of those three was refused.
