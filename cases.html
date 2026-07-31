@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The nineteen cases</title>
+<style>
+  :root { --ink: #1f2328; --dim: #9aa1a9; --line: #e6e8ea; --green: #1a7f37; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font: 15px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink); background: #fafafa; padding: 40px 16px;
+  }
+  .card {
+    max-width: 860px; margin: 0 auto; background: #fff;
+    border: 1px solid var(--line); border-radius: 10px; padding: 36px 40px 30px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--dim); padding: 0 12px 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  td { padding: 9px 12px 9px 0; border-bottom: 1px solid #f2f3f4; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.n { color: var(--dim); width: 30px; padding-right: 8px; }
+  td.solution { color: var(--green); font-weight: 500; }
+  .section td {
+    padding: 22px 0 8px; border-bottom: 0; font-size: 11px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--ink);
+  }
+  @media (max-width: 640px) { .card { padding: 24px 18px; } }
+</style>
+</head>
+<body>
+<div class="card">
+  <table>
+    <thead>
+      <tr><th></th><th style="width:50%">Situation</th><th>Solution</th></tr>
+    </thead>
+    <tbody>
+      <tr class="section"><td colspan="3">Goes to a human</td></tr>
+      <tr><td class="n">1</td><td>Same full name, same address, same postcode</td><td class="solution">photo ID checked, approved: father and son</td></tr>
+      <tr><td class="n">2</td><td>Same full name, same address, different postcode</td><td class="solution">photo ID checked, approved</td></tr>
+      <tr><td class="n">3</td><td>Same full name, same postcode, different address</td><td class="solution">photo ID checked, approved: neighbours</td></tr>
+      <tr><td class="n">4</td><td>Same full name, nothing else matches</td><td class="solution">photo ID checked, approved</td></tr>
+      <tr><td class="n">10</td><td>An existing patient claims again under a new email</td><td class="solution">photo ID checked, refused</td></tr>
+      <tr><td class="n">18</td><td>Photo ID check still pending</td><td class="solution">nothing released until a human decides</td></tr>
+
+      <tr class="section"><td colspan="3">Approved without a human</td></tr>
+      <tr><td class="n">5</td><td>Same surname, address, postcode and bank card</td><td class="solution">approved: family members, the card decides nothing</td></tr>
+      <tr><td class="n">6</td><td>Same address and postcode only</td><td class="solution">approved: unrelated housemates</td></tr>
+      <tr><td class="n">7</td><td>Same first name, same postcode</td><td class="solution">approved: neighbours with the same first name</td></tr>
+      <tr><td class="n">8</td><td>Nothing matches anyone</td><td class="solution">approved</td></tr>
+      <tr><td class="n">19</td><td>Claimed by phone, registered with an email</td><td class="solution">still found, approved</td></tr>
+
+      <tr class="section"><td colspan="3">Not a referral</td></tr>
+      <tr><td class="n">9</td><td>The claimed contact already belongs to a patient</td><td class="solution">already a customer: no reward, nobody told</td></tr>
+      <tr><td class="n">11</td><td>Two customers claim the same friend</td><td class="solution">the successful claim keeps it, the other never releases</td></tr>
+
+      <tr class="section"><td colspan="3">The payout</td></tr>
+      <tr><td class="n">12</td><td>The referrer's first successful claim</td><td class="solution">80</td></tr>
+      <tr><td class="n">13</td><td>The same referrer's second</td><td class="solution">40</td></tr>
+      <tr><td class="n">14</td><td>A second 80 attempted for the same referrer</td><td class="solution">the database refuses it</td></tr>
+
+      <tr class="section"><td colspan="3">Nothing happens yet, or ever</td></tr>
+      <tr><td class="n">15</td><td>The window closes with no delivery</td><td class="solution">lapsed: nothing released</td></tr>
+      <tr><td class="n">16</td><td>Clicked the link, never registered</td><td class="solution">held: nothing decided</td></tr>
+      <tr><td class="n">17</td><td>Registered, never ordered</td><td class="solution">discount approved, bonus waits for the order</td></tr>
+    </tbody>
+  </table>
+</div>
+</body>
+</html>
