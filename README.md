@@ -1,5 +1,7 @@
 # The duplicate check, rebuilt
 
+**[Read it as a page](https://joleneann.github.io/bolt-referral-tables/)**, or read it here.
+
 Bolt Pharmacy's referral programme refuses referrals between people who share an address. Two
 customers wrote it down publicly. One was told his housemate was already a customer, which was
 untrue, and the housemate bought from a competitor instead. The other switched to Bolt because

@@ -1,0 +1,26 @@
+name: keepalive
+
+# Supabase pauses a free project after a week with no traffic. The links on the page and in the
+# README may be opened weeks after they are sent, so one read a day keeps them answering.
+
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read one row from each table a link points at
+        run: |
+          URL=https://doiyvwwvddgokurwyvvb.supabase.co
+          KEY=sb_publishable__nHann-Y9PXbsuaJVmcAxg__f8Y0Rvy
+          fail=0
+          for t in verification_matrix claims patients grant_friend_discount grant_patient_discount; do
+            code=$(curl -s -o /tmp/$t.json -w '%{http_code}' \
+              "$URL/rest/v1/$t?select=*&limit=1" -H "apikey: $KEY")
+            echo "$t HTTP $code"
+            [ "$code" = "200" ] || fail=1
+          done
+          exit $fail

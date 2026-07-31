@@ -313,8 +313,278 @@ ${rows.join('\n')}
 
 await writeFile(new URL('./cases.html', import.meta.url), html, 'utf8')
 
+// ------------------------------------------------------------------ index.html
+// The page. Prose is written here; every table in it is read out of the live database in the
+// same run that writes results.md, so the page and the tables cannot disagree.
+
+// Found by shape, not by id: the housemate case is the one approved on a shared address and
+// postcode with neither name matching.
+const housemate = gfd.find(g => g.address_match && g.postcode_match
+  && !g.first_name_match && !g.last_name_match && g.release_friend_discount)
+// The referrer who has been paid both tiers.
+const tiered = gpd.filter(g => g.release_patient_discount)
+  .reduce((acc, g) => { (acc[g.referrer_id] ||= []).push(g); return acc }, {})
+const tieredId = Object.keys(tiered).find(k => tiered[k].some(g => g.referral_amount === 80)
+  && tiered[k].some(g => g.referral_amount === 40))
+const tieredClaims = gpd.filter(g => g.referrer_id === tieredId)
+  .sort((a, b) => (claims.find(c => c.claim_id === a.claim_id)?.creation_date || '')
+    .localeCompare(claims.find(c => c.claim_id === b.claim_id)?.creation_date || ''))
+const refusals = ordered.filter(c => {
+  const f = byClaimF.get(c.claim_id)
+  return f && (f.approved === false || (f.approved && !f.release_friend_discount && f.within_window))
+})
+
+const cell = v => v === null || v === undefined || v === '' ? '<td class="q">not checked</td>'
+  : typeof v === 'boolean' ? `<td>${v ? 'yes' : 'no'}</td>` : `<td>${esc(v)}</td>`
+
+const matrixRows = matrix.map(m => `<tr${m.approved === 'manual' ? ' class="hit"' : ''}>`
+  + [m.first_name_match, m.last_name_match, m.address_match, m.postcode_match].map(cell).join('')
+  + `<td><b>${m.approved === 'manual' ? 'a human looks' : 'approved'}</b></td>`
+  + `<td class="q">${esc(m.note || '')}</td></tr>`).join('\n')
+
+const caseRows = (() => {
+  const seen = new Set(); const out = []
+  for (const [title, test] of GROUPS) {
+    const mine = ordered.filter(c => !seen.has(c.claim_id) && test(c))
+    if (!mine.length) continue
+    mine.forEach(c => seen.add(c.claim_id))
+    out.push(`<tr class="grp"><td colspan="3">${title}</td></tr>`)
+    for (const c of mine) {
+      const [n, label] = CASES[c.claim_id]
+      out.push(`<tr><td class="q">${n}</td><td>${esc(label)}</td><td class="ok">${esc(solution(c))}</td></tr>`)
+    }
+  }
+  return out.join('\n')
+})()
+
+const page = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The duplicate check, rebuilt</title>
+<meta name="description" content="A referral duplicate check that stops refusing households, running on live Postgres.">
+<style>
+  :root {
+    --ink:#1a1d21; --dim:#6b727a; --faint:#9aa1a9; --line:#e4e7ea; --bg:#fff; --wash:#fafbfc;
+    --ok:#1a7f37; --hit:#8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e6e8ea; --dim:#a2a9b0; --faint:#7c848c; --line:#2a2f35; --bg:#15181b; --wash:#1b1f23;
+            --ok:#4ac26b; --hit:#d9a441; }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { -webkit-text-size-adjust:100%; }
+  body { font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         color:var(--ink); background:var(--bg); padding:0 20px 72px; }
+  main { max-width:38rem; margin:0 auto; }
+  .kicker { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
+            padding:44px 0 18px; }
+  h1 { font-size:29px; line-height:1.22; letter-spacing:-.015em; margin:0 0 20px; }
+  h2 { font-size:19px; line-height:1.3; margin:44px 0 12px; letter-spacing:-.01em; }
+  p { margin:0 0 16px; }
+  .lead { font-size:18px; }
+  .q { color:var(--dim); }
+  b, strong { font-weight:600; }
+  a { color:inherit; text-decoration:underline; text-underline-offset:2px;
+      text-decoration-color:var(--faint); }
+  a:hover { text-decoration-color:currentColor; }
+  .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 0 16px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; line-height:1.45; }
+  th { text-align:left; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+       color:var(--faint); font-weight:600; padding:0 12px 8px 0; border-bottom:1px solid var(--line);
+       white-space:nowrap; }
+  td { padding:7px 12px 7px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
+  tr.hit td { color:var(--hit); }
+  tr.grp td { padding:20px 0 6px; border-bottom:0; font-size:10.5px; font-weight:700;
+              letter-spacing:.12em; text-transform:uppercase; color:var(--ink); }
+  td.ok { color:var(--ok); }
+  .gone { border:1px dashed var(--line); border-radius:8px; background:var(--wash);
+          padding:30px 20px; text-align:center; color:var(--faint); font-size:14px; margin:0 0 16px; }
+  pre { background:var(--wash); border:1px solid var(--line); border-radius:8px; padding:14px 16px;
+        overflow-x:auto; font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+        margin:0 0 16px; }
+  ul { margin:0 0 16px 20px; }
+  li { margin:0 0 7px; }
+  footer { margin-top:52px; padding-top:20px; border-top:1px solid var(--line);
+           font-size:14px; color:var(--dim); }
+</style>
+</head>
+<body>
+<main>
+
+<p class="kicker">Bolt Pharmacy referral programme &middot; a working rebuild &middot; Jolene Fernandes</p>
+
+<h1>The duplicate check asks the wrong question</h1>
+
+<p class="lead">Bolt refuses referrals between people who share an address. Two customers wrote it
+down in public. One was told his housemate was already a customer. That was untrue, and the
+housemate bought from a competitor instead. The other joined because her husband referred her,
+then watched her own credit vanish when their accounts merged over a shared home address.</p>
+
+<p>Both of those referrals happened. Neither was paid. The check is what decides whether a real
+referral gets dispensed, and in both cases it decided wrong.</p>
+
+<h2>The one number I do not have</h2>
+
+<p>I cannot size how often that happens. Nobody publishes how many referrals the check refuses,
+and no review tells you the denominator. That is the first query I would run: pull the refusal
+reasons and count what share of blocks are households rather than genuine duplicates. Until it
+runs the rate is unknown, and I will not guess at it.</p>
+
+<h2>A pharmacy can ask a better question than a shop can</h2>
+
+<p>A shop has to ask "same address?", because an address is all it holds. A pharmacy holds patient
+records, so it can ask whether this is the same person. Those two questions disagree exactly where
+it hurts. A couple. A houseshare. A parent and an adult child.</p>
+
+<p><b>So the rule is one line. A human looks only when a first name and a last name both match an
+existing patient.</b> A shared address changes nothing. A shared postcode changes nothing. A shared
+bank card changes nothing. All three are recorded, shown, and ignored by the verdict.</p>
+
+<p>The whole rule is 16 rows in a table, not logic buried in code:</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>first name</th><th>last name</th><th>address</th><th>postcode</th><th>verdict</th><th>why</th></tr></thead>
+<tbody>
+${matrixRows}
+</tbody>
+</table>
+</div>
+
+<p>Read those <a href="${BASE}/verification_matrix?select=first_name_match,last_name_match,address_match,postcode_match,approved,note&amp;order=first_name_match.desc,last_name_match.desc,address_match.desc,postcode_match.desc&amp;apikey=${KEY}">16 rows straight out of the live database</a>, no account needed.
+Change the rule and you edit a row, not a deploy.</p>
+
+<h2>The refusal screen is the thing this deletes</h2>
+
+<p>Here is the housemate case, running. Same address, same postcode, two different people. This is
+where the old check said no:</p>
+
+<div class="gone">no screen here</div>
+
+<p>Nothing is shown to anyone, because nothing needs deciding. The comparison still ran, and the
+database still recorded what it found:</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>first name</th><th>last name</th><th>address</th><th>postcode</th><th>goes to a human</th><th>verdict</th></tr></thead>
+<tbody>
+<tr>${[housemate.first_name_match, housemate.last_name_match, housemate.address_match,
+      housemate.postcode_match, housemate.manual_verification_needed].map(cell).join('')}<td class="ok"><b>approved</b></td></tr>
+</tbody>
+</table>
+</div>
+
+<p class="q">Reason stored at the time: "${esc(housemate.verdict_note)}"</p>
+
+<h2>Nineteen cases, decided inside the database</h2>
+
+<div class="scroll">
+<table>
+<thead><tr><th></th><th>situation</th><th>what happened</th></tr></thead>
+<tbody>
+${caseRows}
+</tbody>
+</table>
+</div>
+
+<p>${manualCount} of the ${ordered.length} claims went to a human, and every one of them turned on
+a full name. ${householdOnly} matched an address or a postcode without matching both names.
+${refusedOnHousehold} of those were refused.</p>
+
+<p>Every verdict above was computed inside Postgres, not typed. <a href="results.md">The full
+readback</a> carries each comparison and the reason stored at the time, and
+<a href="${BASE}/claims?select=friend_email,friend_phone,claim_status,grant_friend_discount(approved,verdict_note,release_friend_discount),grant_patient_discount(first_claim,referral_amount,release_patient_discount)&amp;order=creation_date&amp;apikey=${KEY}">the same rows are readable live</a>.</p>
+
+<h2>What it refuses to pay</h2>
+
+<div class="scroll">
+<table>
+<thead><tr><th></th><th>situation</th><th>reason stored at the time</th></tr></thead>
+<tbody>
+${refusals.map(c => {
+  const f = byClaimF.get(c.claim_id)
+  return `<tr><td class="q">${CASES[c.claim_id][0]}</td><td>${esc(CASES[c.claim_id][1])}</td><td class="q">${esc(shorten(f.verdict_note))}</td></tr>`
+}).join('\n')}
+</tbody>
+</table>
+</div>
+
+<p>The tiers hold too. One referrer, three claims, in the order they arrived:</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>first claim</th><th>amount</th><th>paid</th></tr></thead>
+<tbody>
+${tieredClaims.map(g => `<tr>${cell(g.first_claim)}<td>${g.referral_amount === null ? '<span class="q">none yet</span>' : g.referral_amount}</td>${cell(g.release_patient_discount)}</tr>`).join('\n')}
+</tbody>
+</table>
+</div>
+
+<p>Two promises are held by the database itself rather than by code that could race or be
+rewritten:</p>
+
+<pre>create unique index one_first_claim_per_referrer
+  on grant_patient_discount (referrer_id) where referral_amount = 80;
+
+create unique index one_release_per_friend
+  on grant_friend_discount (friend_patient_id) where release_friend_discount;</pre>
+
+<p>A referrer is paid 80 once, ever. A friend is released once, ever, no matter how many people
+claimed them. The seed file attempts a second 80 on purpose and fails loudly if the database ever
+accepts it.</p>
+
+<h2>What this does not do</h2>
+
+<p>It does not decide who gets asked to refer, or when. It does not touch the share moment, the
+message, or anything before the click. It starts at the claim and stops at the payout. Getting
+more people to refer is a different job from paying correctly the ones who already did.</p>
+
+<p>It also puts nothing in public. Sharing stays inside private 1 to 1 channels. Public posts
+naming prescription medicines are advertising, and the regulator ruled against four UK brands for
+exactly that in February 2026.</p>
+
+<h2>How it is put together</h2>
+
+<p>Six tables. <b>patients</b> is the account list. <b>claims</b> is one row per link click, written
+the moment someone clicks, before any account exists, so a closed tab no longer ends a referral.
+<b>friends</b> is what the friend typed at registration. <b>verification_matrix</b> is the 16 rows
+above. <b>grant_friend_discount</b> holds one verification per claim with the reason copied in at
+the time. <b>grant_patient_discount</b> holds one payout decision per claim.</p>
+
+<p>Read any of it live, with no account and no terminal. The key in these links is the publishable
+one, which is meant to be public:</p>
+
+<ul>
+<li><a href="${BASE}/patients?select=first_name,last_name,address_line,postcode,successful_referrals,customer_since&amp;order=customer_since&amp;apikey=${KEY}">the patients, with successful_referrals counted from released payouts</a></li>
+<li><a href="${BASE}/grant_friend_discount?select=first_name_match,last_name_match,address_match,postcode_match,manual_verification_needed,manual_approved,approved,verdict_note,release_friend_discount&amp;apikey=${KEY}">every verification, with the four comparisons</a></li>
+<li><a href="${BASE}/grant_patient_discount?select=transaction_success,first_claim,referral_amount,release_patient_discount&amp;apikey=${KEY}">every payout decision</a></li>
+<li><a href="https://github.com/joleneann/bolt-referral-tables">the repository</a>: schema, the design written before the SQL, and the 19 cases as data</li>
+</ul>
+
+<p>Select is the only privilege granted to anonymous readers, so an insert returns 42501.</p>
+
+<footer>
+<p>The tables, the rule, the two indexes and both decision functions are real. The people are
+invented and the phone numbers come from Ofcom's test range. The 80 and 40 are Bolt's own
+published amounts, captured from their live referral page on 2026-07-23. The old rule is inferred
+from what customers described in public and labelled as inference wherever it appears, because
+Bolt has never published how their check works.</p>
+<p>This page was written by a script that read the live tables, so it cannot drift away from what
+the system does. Concept work by Jolene Fernandes. Not affiliated with Bolt Pharmacy.</p>
+</footer>
+
+</main>
+</body>
+</html>
+`
+
+await writeFile(new URL('./index.html', import.meta.url), page, 'utf8')
+
 const manual = gfd.filter(g => g.manual_verification_needed).length
 const released = gfd.filter(g => g.release_friend_discount).length
-console.log(`results.md, cases.html and 6 csv files written.`)
+console.log(`results.md, index.html, cases.html and 6 csv files written.`)
 console.log(`${patients.length} patients, ${claims.length} claims, ${matrix.length} matrix rows.`)
 console.log(`${manual} claims went to a human, ${released} friend discounts released.`)
