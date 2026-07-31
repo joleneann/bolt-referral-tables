@@ -8,16 +8,13 @@ described as their two accounts merging over a shared home address.
 
 A pharmacy already knows who its patients are. So this asks a better question, and it runs.
 
-## What those refusals cost
+Both of those referrals happened. Neither was paid. The check is what decides whether a real
+referral gets dispensed, and in both cases it decided wrong.
 
-Advocate Share at end of 26Q1 was 10.22%, so 9 in 10 customers have never referred once. Every
-refused referral is a customer who did the work and never became an advocate. The friend they
-brought is a net new customer who was turned away at the door.
-
-I cannot size that from outside. Nobody publishes how often the check fires, and no review tells
-you the denominator. **That is the one number I would want in week 1.** Query the refusal reasons
-in your own data, then count what share of blocks are households rather than duplicates. Until
-that query runs the rate is unknown, and I will not guess at it.
+I cannot size how often that happens. Nobody publishes how many referrals the check refuses, and
+no review tells you the denominator. **That is the one number I would want in week 1.** Query the
+refusal reasons in your own data, then count what share of blocks are households rather than
+genuine duplicates. Until that query runs the rate is unknown, and I will not guess at it.
 
 ## A pharmacy can ask a better question than a shop can
 
@@ -117,11 +114,9 @@ earlier claim keeps it while the later one is told nothing rather than told they
 
 ## What this does not do
 
-It does not decide who gets asked to refer, or when, and that is where the 26.8 day average to
-first referral gets attacked. It does not choose an analytics stack. It does not touch the share
-moment or the 1000 second window after purchase. It does not model K. The published figures cover
-different populations over different windows, and I will not publish arithmetic I cannot defend
-line by line.
+It does not decide who gets asked to refer, or when. It does not touch the share moment, the
+message, or anything before the click. It starts at the claim and stops at the payout. Getting
+more people to refer is a different job from paying correctly the ones who already did.
 
 It also does not put anything in public. Sharing stays inside private 1 to 1 channels. Public
 posts naming prescription medicines are advertising, and the regulator ruled against four UK
