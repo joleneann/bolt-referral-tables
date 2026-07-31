@@ -29,15 +29,6 @@ hurts. A couple. A houseshare. A parent and an adult child.
 existing patient.** A shared address changes nothing. A shared postcode changes nothing. A shared
 bank card changes nothing. All three are recorded, shown, and ignored by the verdict.
 
-```mermaid
-flowchart LR
-  A[4 comparisons] --> B{both names match?}
-  B -->|4 of 16| C[a human checks ID]
-  B -->|12 of 16| D[approved]
-  C --> D
-  C --> E[refused]
-```
-
 The whole rule is 16 rows in a table, not logic buried in code:
 
 | first name | last name | address | postcode | verdict | why |
@@ -92,14 +83,6 @@ existing patient, and the photo ID check catches it. Two customers claim the sam
 earlier claim keeps it while the later one is told nothing rather than told they lost. And a
 referrer who already has an 80 is refused a second one by the database itself.
 
-```mermaid
-flowchart LR
-  A[order completes] --> B{paid before?}
-  B -->|no| C[80]
-  B -->|yes| D[40]
-  C --> E[(one 80 per referrer,<br/>held by an index)]
-```
-
 Two promises are held by partial unique indexes rather than by code that could race:
 
 ```sql
@@ -128,58 +111,28 @@ that in February 2026.
 
 ```mermaid
 erDiagram
-    patients {
-        uuid patient_id PK
-        uuid referrer_id FK "who referred them"
-        int successful_referrals "counted from released payouts, never written by hand"
-        text email UK
-        text phone UK
-        text address_line "not unique, on purpose"
-    }
-    claims {
-        uuid claim_id PK
-        uuid referrer_id FK "whose link it was, fixed on arrival"
-        uuid friend_patient_id FK "null until the order completes"
-        text claim_status "one of five"
-        timestamptz expiry_date "creation plus 6 months, a fact in the row"
-    }
-    friends {
-        uuid claim_id PK
-        text first_name "what they typed at registration"
-        text address_line
-    }
-    grant_friend_discount {
-        uuid claim_id PK
-        boolean manual_verification_needed "generated from the two name columns"
-        text verdict_note "copied at decision time, never regenerated"
-        uuid friend_patient_id FK "carries the once-per-friend index"
-    }
-    grant_patient_discount {
-        uuid claim_id PK
-        uuid referrer_id FK "carries the once-per-referrer index"
-        int referral_amount "80 or 40"
-    }
-    verification_matrix {
-        boolean first_name_match PK
-        boolean last_name_match PK
-        boolean address_match PK
-        boolean postcode_match PK
-        text approved "yes or manual"
-        text note "the sentence a reviewer is shown"
-    }
-    patients ||--o{ claims : "referrer_id"
-    patients |o--o{ claims : "friend_patient_id"
-    claims ||--o| friends : "claim_id"
-    claims ||--o| grant_friend_discount : "claim_id"
-    claims ||--o| grant_patient_discount : "claim_id"
+    patients ||--o{ claims : "whose link it was"
+    patients |o--o{ claims : "who arrived, set at the order"
+    claims ||--o| friends : ""
+    claims ||--o| grant_friend_discount : ""
+    claims ||--o| grant_patient_discount : ""
 ```
+
+- `patients`, the account list. `successful_referrals` is counted from released payouts by a
+  trigger, never written by hand. `address_line` is not unique, on purpose.
+- `claims`, one row per link click, written before any account exists. `expiry_date` is creation
+  plus 6 months, a fact in the row rather than a job somebody runs.
+- `friends`, what the friend typed at registration.
+- `grant_friend_discount`, one verification per claim. `manual_verification_needed` is generated
+  by the database from the two name columns, and `verdict_note` is copied in at decision time.
+- `grant_patient_discount`, one payout decision per claim, carrying `referrer_id` so the index can
+  refuse a second 80.
+- `verification_matrix`, the 16 rows above. It has no foreign key to anything. The four booleans
+  look it up at decision time and the answer is copied onto the decision, so a later edit to the
+  rule cannot rewrite what a past reviewer was shown.
 
 A claim exists from the moment someone clicks, before any account does. That is the repair: today
 a referral is a browsing session, and a closed tab ends it.
-
-`verification_matrix` has no foreign key to anything. The four booleans look it up at decision
-time, and the answer is copied onto the decision. Editing the rule later cannot rewrite what a past
-reviewer was shown.
 
 ## Files, and the order they run
 
