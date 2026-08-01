@@ -250,25 +250,47 @@ out.push('')
 
 await writeFile(new URL('./results.md', import.meta.url), out.join('\n'), 'utf8')
 
-const csv = rows => {
+// Column order comes from the table, which changes when a column is dropped and re-added, and
+// row order is whatever Postgres returns. Both are pinned here so regenerating a file produces a
+// clean diff, and a diff that shows anything is a real change.
+const CSV_COLS = {
+  patients: ['patient_id', 'referrer_id', 'successful_referrals', 'first_name', 'last_name',
+    'email', 'phone', 'address_line', 'postcode', 'payment_fingerprint', 'customer_since'],
+  claims: ['claim_id', 'referrer_id', 'claim_channel', 'friend_email', 'friend_phone',
+    'creation_date', 'expiry_date', 'claim_status', 'friend_patient_id'],
+  friends: ['claim_id', 'first_name', 'last_name', 'email', 'phone', 'address_line', 'postcode'],
+  verification_matrix: ['first_name_match', 'last_name_match', 'address_match', 'postcode_match',
+    'approved', 'note'],
+  grant_friend_discount: ['claim_id', 'first_name_match', 'last_name_match', 'address_match',
+    'postcode_match', 'manual_verification_needed', 'manual_approved', 'approved', 'verdict_note',
+    'within_window', 'release_friend_discount', 'transaction_status', 'friend_patient_id'],
+  grant_patient_discount: ['claim_id', 'referrer_id', 'transaction_status', 'transaction_success',
+    'first_claim', 'referral_amount', 'release_patient_discount'],
+}
+
+const csv = (rows, table) => {
   if (!rows.length) return ''
-  const cols = Object.keys(rows[0])
+  const cols = CSV_COLS[table] || Object.keys(rows[0])
   const esc = v => {
     if (v === null || v === undefined) return ''
     const s = String(v)
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
-  return [cols.join(','), ...rows.map(r => cols.map(c => esc(r[c])).join(','))].join('\n') + '\n'
+  // Sorted on the first column, which is the key in every one of these tables.
+  const body = rows
+    .map(r => cols.map(c => esc(r[c])).join(','))
+    .sort()
+  return [cols.join(','), ...body].join('\n') + '\n'
 }
 
 await mkdir(new URL('./data/', import.meta.url), { recursive: true })
 await Promise.all([
-  writeFile(new URL('./data/patients.csv', import.meta.url), csv(patients), 'utf8'),
-  writeFile(new URL('./data/claims.csv', import.meta.url), csv(claims), 'utf8'),
-  writeFile(new URL('./data/friends.csv', import.meta.url), csv(friends), 'utf8'),
-  writeFile(new URL('./data/verification_matrix.csv', import.meta.url), csv(matrix), 'utf8'),
-  writeFile(new URL('./data/grant_friend_discount.csv', import.meta.url), csv(gfd), 'utf8'),
-  writeFile(new URL('./data/grant_patient_discount.csv', import.meta.url), csv(gpd), 'utf8'),
+  writeFile(new URL('./data/patients.csv', import.meta.url), csv(patients, 'patients'), 'utf8'),
+  writeFile(new URL('./data/claims.csv', import.meta.url), csv(claims, 'claims'), 'utf8'),
+  writeFile(new URL('./data/friends.csv', import.meta.url), csv(friends, 'friends'), 'utf8'),
+  writeFile(new URL('./data/verification_matrix.csv', import.meta.url), csv(matrix, 'verification_matrix'), 'utf8'),
+  writeFile(new URL('./data/grant_friend_discount.csv', import.meta.url), csv(gfd, 'grant_friend_discount'), 'utf8'),
+  writeFile(new URL('./data/grant_patient_discount.csv', import.meta.url), csv(gpd, 'grant_patient_discount'), 'utf8'),
 ])
 
 const released = gfd.filter(g => g.release_friend_discount).length

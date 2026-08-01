@@ -1,21 +1,21 @@
-claim_id,first_name_match,last_name_match,address_match,postcode_match,manual_approved,approved,verdict_note,within_window,release_friend_discount,transaction_status,friend_patient_id,manual_verification_needed
-a4920614-9eac-416e-b39d-55c5b9b1c764,false,false,false,false,,true,nothing here identifies this person as an existing patient,false,false,,,false
-4c904f72-3f3c-44bd-a1f6-54529db00387,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,success,e88ca8b3-0810-4f2b-9939-6d8abad825d2,false
-9278afb9-8331-4fe1-9b62-65a1b8d8ed02,true,true,true,true,true,true,"could be father and son, same name, same address. photo ID checked: a distinct person",true,true,success,7d34c8bc-9a65-4133-9d01-f31d95677735,true
-a4488223-6308-4015-94f9-49e50c51a4a1,true,true,true,false,true,true,"could be the same person, sending to a different postcode with coincidence same address. photo ID checked: a distinct person",true,true,success,33c782a4-d1ed-4782-b5b7-141bef2daf27,true
-abd523c6-0935-408d-a8b4-1da1c2cd2cc8,true,true,false,true,true,true,neighbours with same names. photo ID checked: a distinct person,true,true,success,e507801f-0f57-4be7-957e-f450eac3a786,true
-b0049305-6016-441b-a464-a25a5edf7c20,true,true,false,false,true,true,could be the same person sending to a different address. photo ID checked: a distinct person,true,true,success,5bdc0232-8584-48aa-9f54-eef54a0cbcdd,true
-847e904c-355c-4188-b5e7-712de3d5ef17,false,true,true,true,,true,family members,true,true,success,d209a08d-a211-469e-9ce9-9a79a5bf6f67,false
-73ab6008-b9a4-44c6-bab5-b388e9e3f38a,false,false,true,true,,true,unrelated housemates,true,true,success,7e971f22-16f2-46ef-a596-8c8012c31e54,false
-56f5ad4d-062a-4d62-8047-ac20fb6c85ca,true,false,false,true,,true,neighbours with the same first name,true,true,success,855c5b72-7f01-4d8f-8d91-cd2e24a299af,false
-638dd1bf-ca20-4311-bb53-6b35d8075066,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,success,d7b63986-0080-4e3b-adfa-10bc9182907d,false
-ed8c179c-0102-41a4-adf7-d2a5b81e1811,,,,,,false,the claimed contact already belongs to an account opened before the claim,true,false,,d66f3bf4-d699-4ab5-9fc1-f62b46283780,
-3df0a425-e9e0-464d-b14a-299f2fc9e00d,true,true,true,true,false,false,"could be father and son, same name, same address. photo ID checked: an existing patient",true,false,,,true
-de3eb6d2-ab0a-41b2-85e4-fa35dd409267,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,success,108446c6-57f9-4051-b9fd-51411ef8e41a,false
-3cf9a9c7-4eeb-421b-a309-1a6d90d76683,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,success,e5e0afdd-cf27-4b72-ac73-a29fc1573042,false
-1ec4eacd-0019-4455-b7b8-36dfdd6505fd,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,success,6df17ab9-a9b9-4266-93b5-2eaf290cc282,false
-6b0b3721-d258-401e-bd3c-5550233221e1,false,false,false,false,,true,nothing here identifies this person as an existing patient. an earlier claim already released for this person; the successful claim keeps it,true,false,,e5e0afdd-cf27-4b72-ac73-a29fc1573042,false
-70f73779-7630-425c-a0c1-e207aad40870,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,,,false
-a5763c67-2a64-40c7-9c77-583345753999,true,true,true,true,,,"could be father and son, same name, same address. awaiting manual photo ID check",true,false,,,true
-603b4114-3edc-4e07-bcb1-5a33c2f473ac,,,,,,,"no account yet, so there is nothing to check",true,false,,,
-fa739966-9b2d-4498-ad86-4509473d4fa3,,,,,,,"no account yet, so there is nothing to check",true,false,,,
+claim_id,first_name_match,last_name_match,address_match,postcode_match,manual_verification_needed,manual_approved,approved,verdict_note,within_window,release_friend_discount,transaction_status,friend_patient_id
+1ec4eacd-0019-4455-b7b8-36dfdd6505fd,false,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,success,6df17ab9-a9b9-4266-93b5-2eaf290cc282
+3cf9a9c7-4eeb-421b-a309-1a6d90d76683,false,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,success,e5e0afdd-cf27-4b72-ac73-a29fc1573042
+3df0a425-e9e0-464d-b14a-299f2fc9e00d,true,true,true,true,true,false,false,"could be father and son, same name, same address. photo ID checked: an existing patient",true,false,,
+4c904f72-3f3c-44bd-a1f6-54529db00387,false,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,success,e88ca8b3-0810-4f2b-9939-6d8abad825d2
+56f5ad4d-062a-4d62-8047-ac20fb6c85ca,true,false,false,true,false,,true,neighbours with the same first name,true,true,success,855c5b72-7f01-4d8f-8d91-cd2e24a299af
+603b4114-3edc-4e07-bcb1-5a33c2f473ac,,,,,,,,"no account yet, so there is nothing to check",true,false,,
+638dd1bf-ca20-4311-bb53-6b35d8075066,false,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,success,d7b63986-0080-4e3b-adfa-10bc9182907d
+6b0b3721-d258-401e-bd3c-5550233221e1,false,false,false,false,false,,true,nothing here identifies this person as an existing patient. an earlier claim already released for this person; the successful claim keeps it,true,false,,e5e0afdd-cf27-4b72-ac73-a29fc1573042
+70f73779-7630-425c-a0c1-e207aad40870,false,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,,
+73ab6008-b9a4-44c6-bab5-b388e9e3f38a,false,false,true,true,false,,true,unrelated housemates,true,true,success,7e971f22-16f2-46ef-a596-8c8012c31e54
+847e904c-355c-4188-b5e7-712de3d5ef17,false,true,true,true,false,,true,family members,true,true,success,d209a08d-a211-469e-9ce9-9a79a5bf6f67
+9278afb9-8331-4fe1-9b62-65a1b8d8ed02,true,true,true,true,true,true,true,"could be father and son, same name, same address. photo ID checked: a distinct person",true,true,success,7d34c8bc-9a65-4133-9d01-f31d95677735
+a4488223-6308-4015-94f9-49e50c51a4a1,true,true,true,false,true,true,true,"could be the same person, sending to a different postcode with coincidence same address. photo ID checked: a distinct person",true,true,success,33c782a4-d1ed-4782-b5b7-141bef2daf27
+a4920614-9eac-416e-b39d-55c5b9b1c764,false,false,false,false,false,,true,nothing here identifies this person as an existing patient,false,false,,
+a5763c67-2a64-40c7-9c77-583345753999,true,true,true,true,true,,,"could be father and son, same name, same address. awaiting manual photo ID check",true,false,,
+abd523c6-0935-408d-a8b4-1da1c2cd2cc8,true,true,false,true,true,true,true,neighbours with same names. photo ID checked: a distinct person,true,true,success,e507801f-0f57-4be7-957e-f450eac3a786
+b0049305-6016-441b-a464-a25a5edf7c20,true,true,false,false,true,true,true,could be the same person sending to a different address. photo ID checked: a distinct person,true,true,success,5bdc0232-8584-48aa-9f54-eef54a0cbcdd
+de3eb6d2-ab0a-41b2-85e4-fa35dd409267,false,false,false,false,false,,true,nothing here identifies this person as an existing patient,true,true,success,108446c6-57f9-4051-b9fd-51411ef8e41a
+ed8c179c-0102-41a4-adf7-d2a5b81e1811,,,,,,,false,the claimed contact already belongs to an account opened before the claim,true,false,,d66f3bf4-d699-4ab5-9fc1-f62b46283780
+fa739966-9b2d-4498-ad86-4509473d4fa3,,,,,,,,"no account yet, so there is nothing to check",true,false,,
