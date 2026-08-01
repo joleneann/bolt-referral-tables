@@ -167,7 +167,7 @@ after insert or update or delete on public.grant_patient_discount
 for each row execute function public.sync_successful_referrals();
 
 create or replace function public.is_first_claim(p_referrer_id uuid)
-returns boolean language sql stable as $$
+returns boolean language sql stable security invoker set search_path = public as $$
   select not exists (select 1 from public.grant_patient_discount g
                       where g.referrer_id = p_referrer_id and g.release_patient_discount);
 $$;
@@ -351,7 +351,14 @@ create policy "public read" on public.grant_friend_discount  for select to anon 
 create policy "public read" on public.grant_patient_discount for select to anon using (true);
 
 grant select on all tables in schema public to anon;
-grant execute on function public.is_first_claim(uuid) to anon;
-revoke execute on function public.sync_successful_referrals() from public, anon;
+grant execute on function public.is_first_claim(uuid) to anon, authenticated;
+
+-- Nothing that writes is reachable over the API by anyone, signed in or not. The two decide
+-- functions are called by the seed file and by a maintainer; the trigger function is called by
+-- the database. Revoking from `authenticated` as well as `anon` matters because Supabase Auth is
+-- on by default, so a stranger can sign themselves up and become `authenticated`.
+revoke execute on function public.decide_friend(uuid, boolean) from public, anon, authenticated;
+revoke execute on function public.decide_patient(uuid) from public, anon, authenticated;
+revoke execute on function public.sync_successful_referrals() from public, anon, authenticated;
 revoke execute on function public.decide_friend(uuid, boolean) from public, anon;
 revoke execute on function public.decide_patient(uuid) from public, anon;
