@@ -51,8 +51,13 @@ The whole rule is 16 rows in a table, not logic buried in code:
 | no | no | no | no | approved | |
 
 [Read those 16 rows straight out of the live database.](https://doiyvwwvddgokurwyvvb.supabase.co/rest/v1/verification_matrix?select=first_name_match,last_name_match,address_match,postcode_match,approved,note&order=first_name_match.desc,last_name_match.desc,address_match.desc,postcode_match.desc&apikey=sb_publishable__nHann-Y9PXbsuaJVmcAxg__f8Y0Rvy)
-Change the rule and you edit a row, not a deploy. Manual review exists because UK photo ID carries
-no number to match on, and it is 4 of 16 combinations, not a queue somebody staffs.
+Change the rule and you edit a row, not a deploy. Nothing in the code decides this; the function
+looks up the row and stores what it found.
+
+Manual review exists because UK photo ID carries no number to match on, and it is 4 of the 16
+combinations. Each patient is compared as a whole person, never field by field. Two strangers who
+happen to share a first name and a surname between them do not trigger it. Without that, a common
+name would send most claims to review once the patient list is large.
 
 ## The refusal they documented, running
 
@@ -123,8 +128,9 @@ erDiagram
 - `claims`, one row per link click, written before any account exists. `expiry_date` is creation
   plus 6 months, a fact in the row rather than a job somebody runs.
 - `friends`, what the friend typed at registration.
-- `grant_friend_discount`, one verification per claim. `manual_verification_needed` is generated
-  by the database from the two name columns, and `verdict_note` is copied in at decision time.
+- `grant_friend_discount`, one verification per claim. `manual_verification_needed` and
+  `verdict_note` are both written from the matrix row that decided it. The rule lives in one
+  place, and the record keeps what was shown at the time.
 - `grant_patient_discount`, one payout decision per claim, carrying `referrer_id` so the index can
   refuse a second 80.
 - `verification_matrix`, the 16 rows above. It has no foreign key to anything. The four booleans
@@ -137,9 +143,10 @@ a referral is a browsing session, and a closed tab ends it.
 ## Files, and the order they run
 
 The schema lives in [`supabase/migrations/`](supabase/migrations/) and is applied by Supabase's
-GitHub integration: a push to `main` runs any migration this project has not run yet. The three
-there are the six tables and both decision functions, then `successful_referrals` becoming a real
-column maintained by trigger, then closing the write functions to signed-in users.
+GitHub integration: a push to `main` runs any migration this project has not run yet. There are
+four. The six tables and both decision functions, then `successful_referrals` becoming a real
+column maintained by trigger, then closing the write functions to signed-in users, then comparing
+each patient as a whole person rather than field by field.
 
 The data is seeded by hand, in this order, and both files are safe to re-run:
 
