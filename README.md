@@ -143,10 +143,12 @@ a referral is a browsing session, and a closed tab ends it.
 ## Files, and the order they run
 
 The schema lives in [`supabase/migrations/`](supabase/migrations/) and is applied by Supabase's
-GitHub integration: a push to `main` runs any migration this project has not run yet. There are
-four. The six tables and both decision functions, then `successful_referrals` becoming a real
-column maintained by trigger, then closing the write functions to signed-in users, then comparing
-each patient as a whole person rather than field by field.
+GitHub integration: a push to `main` runs any migration this project has not run yet. There are four:
+
+1. The six tables and both decision functions.
+2. `successful_referrals` becomes a real column, maintained by trigger.
+3. The write functions are closed to signed-in users, not only anonymous ones.
+4. Each patient is compared as a whole person rather than field by field.
 
 The data is seeded by hand, in this order, and both files are safe to re-run:
 
