@@ -9,7 +9,37 @@ Which claim belongs to which case is the one hand-written thing here. A row reco
 happened, never which scenario it was written for, so the labels come from the comments in
 `seed-cases.sql`.
 
-## Every case, and how it ended
+## Situation, and what happened
+
+| # | Situation | What happened |
+|---|---|---|
+| | **Goes to a human** | |
+| 1 | Same full name, same address, same postcode | photo ID checked, approved: could be father and son, same name, same address |
+| 2 | Same full name, same address, different postcode | photo ID checked, approved: could be the same person, sending to a different... |
+| 3 | Same full name, same postcode, different address | photo ID checked, approved: neighbours with same names |
+| 4 | Same full name, nothing else matches | photo ID checked, approved: could be the same person sending to a different a... |
+| 10 | An existing patient claims again under a new email | photo ID checked, refused |
+| 18 | The photo ID check is still pending | nothing releases until a human decides |
+| | **The payout** | |
+| 12 | The referrer's first successful claim | approved, referrer paid 80 |
+| 13 | The same referrer, second successful claim | approved, referrer paid 40 |
+| 14 | A second 80 is attempted for the same referrer | the database refuses the write, so nothing is paid |
+| | **Approved without a human** | |
+| 5 | Same surname, address, postcode and bank card | approved, referrer paid 80 |
+| 6 | Same address and postcode only | approved, referrer paid 80 |
+| 7 | Same first name, same postcode | approved, referrer paid 80 |
+| 8 | Nothing matches anyone | approved, referrer paid 80 |
+| 11a | Two customers claim the same friend: the earlier claim | approved, referrer paid 80 |
+| 17 | Registered, never ordered | approved, the bonus waits for the order |
+| 19 | Claimed by phone, registered with an email | approved, referrer paid 80 |
+| | **Not a referral** | |
+| 9 | The claimed contact already belongs to a patient | already a customer: no reward, nobody told |
+| 11b | Two customers claim the same friend: the later claim | the earlier claim keeps it |
+| | **Nothing happens yet, or ever** | |
+| 15 | The window closes with no delivery | the window closed, nothing released |
+| 16 | Clicked the link, never registered | held: nobody has registered |
+
+## Every case, and the evidence behind it
 
 | # | Case | Names match | Household match | Verdict | Friend paid | Referrer paid |
 |---|---|---|---|---|---|---|

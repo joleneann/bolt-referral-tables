@@ -68,6 +68,53 @@ const ordered = claims
     return parseInt(x, 10) - parseInt(y, 10) || x.localeCompare(y)
   })
 
+// ------------------------------------------------------- grouping the cases
+// How the nineteen cases are grouped and described on the page. Derived from what each row
+// actually holds, so a change to the data changes the grouping.
+
+const num = c => CASES[c.claim_id][0]
+
+const GROUPS = [
+  ['Goes to a human', c => byClaimF.get(c.claim_id)?.manual_verification_needed],
+  ['The payout', c => ['12', '13', '14'].includes(num(c))],
+  ['Approved without a human', c => {
+    const f = byClaimF.get(c.claim_id)
+    return f && !f.manual_verification_needed && f.release_friend_discount
+  }],
+  ['Not a referral', c => {
+    const f = byClaimF.get(c.claim_id)
+    return f && !f.manual_verification_needed
+      && (f.approved === false || (f.approved && !f.release_friend_discount && f.within_window))
+  }],
+  ['Nothing happens yet, or ever', () => true],
+]
+
+// Short enough to read in a column. The full stored reason is in results.md and the CSVs.
+const shorten = s => {
+  const first = String(s).split('.')[0].trim()
+  return first.length > 52 ? first.slice(0, 49).replace(/[ ,]+$/, '') + '...' : first
+}
+
+const solution = c => {
+  const f = byClaimF.get(c.claim_id)
+  const p = byClaimP.get(c.claim_id)
+  // Case 14 is the one case whose proof is not a row. The second 80 is attempted at seed time
+  // and the index refuses the write, so there is nothing to store. Saying otherwise would claim
+  // an outcome the data does not carry.
+  if (num(c) === '14') return 'the database refuses the write, so nothing is paid'
+  if (!f) return 'nothing decided'
+  if (f.approved === null && f.manual_verification_needed) return 'nothing releases until a human decides'
+  if (f.approved === null) return 'held: nobody has registered'
+  if (f.manual_verification_needed && f.approved) return `photo ID checked, approved: ${shorten(f.verdict_note)}`
+  if (f.manual_verification_needed) return 'photo ID checked, refused'
+  if (f.approved === false) return 'already a customer: no reward, nobody told'
+  if (!f.release_friend_discount && f.within_window) return 'the earlier claim keeps it'
+  if (!f.release_friend_discount) return 'the window closed, nothing released'
+  if (p && p.release_patient_discount) return `approved, referrer paid ${p.referral_amount}`
+  if (p && !p.transaction_success) return 'approved, the bonus waits for the order'
+  return 'approved'
+}
+
 const out = []
 out.push('# The nineteen cases, as the database answered them')
 out.push('')
@@ -80,7 +127,27 @@ out.push('Which claim belongs to which case is the one hand-written thing here. 
 out.push('happened, never which scenario it was written for, so the labels come from the comments in')
 out.push('`seed-cases.sql`.')
 out.push('')
-out.push('## Every case, and how it ended')
+// The readable view first: situation and what the system did, grouped by kind of answer.
+out.push('## Situation, and what happened')
+out.push('')
+out.push('| # | Situation | What happened |')
+out.push('|---|---|---|')
+{
+  const seen = new Set()
+  for (const [title, test] of GROUPS) {
+    const mine = ordered.filter(c => !seen.has(c.claim_id) && test(c))
+    if (!mine.length) continue
+    mine.forEach(c => seen.add(c.claim_id))
+    out.push(`| | **${title}** | |`)
+    for (const c of mine) {
+      const [n, label] = CASES[c.claim_id]
+      out.push(`| ${n} | ${label} | ${solution(c)} |`)
+    }
+  }
+}
+out.push('')
+
+out.push('## Every case, and the evidence behind it')
 out.push('')
 out.push('| # | Case | Names match | Household match | Verdict | Friend paid | Referrer paid |')
 out.push('|---|---|---|---|---|---|---|')
@@ -203,53 +270,6 @@ await Promise.all([
   writeFile(new URL('./data/grant_friend_discount.csv', import.meta.url), csv(gfd), 'utf8'),
   writeFile(new URL('./data/grant_patient_discount.csv', import.meta.url), csv(gpd), 'utf8'),
 ])
-
-// ------------------------------------------------------- grouping the cases
-// How the nineteen cases are grouped and described on the page. Derived from what each row
-// actually holds, so a change to the data changes the grouping.
-
-const num = c => CASES[c.claim_id][0]
-
-const GROUPS = [
-  ['Goes to a human', c => byClaimF.get(c.claim_id)?.manual_verification_needed],
-  ['The payout', c => ['12', '13', '14'].includes(num(c))],
-  ['Approved without a human', c => {
-    const f = byClaimF.get(c.claim_id)
-    return f && !f.manual_verification_needed && f.release_friend_discount
-  }],
-  ['Not a referral', c => {
-    const f = byClaimF.get(c.claim_id)
-    return f && !f.manual_verification_needed
-      && (f.approved === false || (f.approved && !f.release_friend_discount && f.within_window))
-  }],
-  ['Nothing happens yet, or ever', () => true],
-]
-
-// Short enough to read in a column. The full stored reason is in results.md and the CSVs.
-const shorten = s => {
-  const first = String(s).split('.')[0].trim()
-  return first.length > 52 ? first.slice(0, 49).replace(/[ ,]+$/, '') + '...' : first
-}
-
-const solution = c => {
-  const f = byClaimF.get(c.claim_id)
-  const p = byClaimP.get(c.claim_id)
-  // Case 14 is the one case whose proof is not a row. The second 80 is attempted at seed time
-  // and the index refuses the write, so there is nothing to store. Saying otherwise would claim
-  // an outcome the data does not carry.
-  if (num(c) === '14') return 'the database refuses the write, so nothing is paid'
-  if (!f) return 'nothing decided'
-  if (f.approved === null && f.manual_verification_needed) return 'nothing releases until a human decides'
-  if (f.approved === null) return 'held: nobody has registered'
-  if (f.manual_verification_needed && f.approved) return `photo ID checked, approved: ${shorten(f.verdict_note)}`
-  if (f.manual_verification_needed) return 'photo ID checked, refused'
-  if (f.approved === false) return 'already a customer: no reward, nobody told'
-  if (!f.release_friend_discount && f.within_window) return 'the earlier claim keeps it'
-  if (!f.release_friend_discount) return 'the window closed, nothing released'
-  if (p && p.release_patient_discount) return `approved, referrer paid ${p.referral_amount}`
-  if (p && !p.transaction_success) return 'approved, the bonus waits for the order'
-  return 'approved'
-}
 
 const released = gfd.filter(g => g.release_friend_discount).length
 console.log(`results.md and 6 csv files written.`)
