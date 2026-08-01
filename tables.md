@@ -1,7 +1,7 @@
 # The tables, as specified
 
 Transcribed from `Bolt Tables v2.xlsx`, Sheet1, cell notes included. That sheet is the
-specification; `schema.sql` implements it. Six tables: the five drawn on the sheet plus
+specification; `supabase/migrations/` implements it. Six tables: the five drawn on the sheet plus
 `verification_matrix`, which is the sheet's own matrix stored as data.
 
 ## patients

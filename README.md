@@ -136,14 +136,19 @@ a referral is a browsing session, and a closed tab ends it.
 
 ## Files, and the order they run
 
-1. [`schema.sql`](schema.sql), the six tables, both decision functions, both indexes, row level
-   security and read-only grants.
-2. [`seed-matrix.sql`](seed-matrix.sql), the 16 rows of the rule.
-3. [`seed-cases.sql`](seed-cases.sql), the nineteen cases as data. Delete it and the system still
+The schema lives in [`supabase/migrations/`](supabase/migrations/) and is applied by Supabase's
+GitHub integration: a push to `main` runs any migration this project has not run yet. The three
+there are the six tables and both decision functions, then `successful_referrals` becoming a real
+column maintained by trigger, then closing the write functions to signed-in users.
+
+The data is seeded by hand, in this order, and both files are safe to re-run:
+
+1. [`seed-matrix.sql`](seed-matrix.sql), the 16 rows of the rule.
+2. [`seed-cases.sql`](seed-cases.sql), the nineteen cases as data. Delete it and the system still
    stands.
 
-All three are safe to re-run. Then `node render-tables.mjs` reads the live tables and writes
-[`results.md`](results.md) and [`data/*.csv`](data/), which GitHub renders as sortable grids.
+Then `node render-tables.mjs` reads the live tables and writes [`results.md`](results.md) and
+[`data/*.csv`](data/), which GitHub renders as sortable grids.
 
 [`tables.md`](tables.md) is the design, written before the SQL.
 

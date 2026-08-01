@@ -4,7 +4,7 @@
 -- one line: manual when first and last name both match, else yes. The other two columns
 -- never move the verdict; the note says why the combination is safe or why a human looks.
 --
--- Run after schema.sql. Safe to re-run: clears its own rows first.
+-- Run after the migrations. Safe to re-run: clears its own rows first.
 
 delete from public.verification_matrix;
 
