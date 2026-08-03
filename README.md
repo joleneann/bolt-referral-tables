@@ -1,35 +1,35 @@
-# The duplicate check, rebuilt
+# The referral tables, rebuilt
 
 Bolt Pharmacy's referral programme refuses referrals between people who share an address. Two
-customers wrote it down in public. One was told his housemate was already a customer. That was
+customers wrote it down in public. One was told his housemate was already a customer, which was
 untrue, and the housemate bought from a competitor instead. The other joined because her husband
 referred her, then watched her own credit vanish when their accounts merged over a shared home
-address.
+address. Both referrals happened. Neither was paid.
 
-Both of those referrals happened. Neither was paid. An address is not an identity, and matching on
-one turns every household into a duplicate.
-
-This is that check rebuilt: six Postgres tables, one rule, nineteen worked cases, every verdict
+An address is not an identity. This is the whole thing rebuilt as 6 Postgres tables: a claim that
+exists before any account does, one rule held as data, and 19 worked cases with every verdict
 decided inside the database and readable without an account.
 
-## The one number I do not have
+## The six tables
 
-I cannot size how often this happens. Nobody publishes how many referrals the check refuses, and
-no review tells you the denominator. That is the first query I would run: pull the refusal reasons
-and count what share of blocks are households rather than genuine duplicates. Until it runs the
-rate is unknown, and I will not guess at it.
+| table | holds | how it works |
+|---|---|---|
+| **`patients`** | customer records | The account list. `referrer_id` holds at most one person, set when they convert and never changed after, so who introduced them cannot be rewritten later. `successful_referrals` is counted from released payouts by a trigger, never typed. `address_line` is deliberately not unique: recorded, and it decides nothing. |
+| **`claims`** | events | One row per discount link click, written before any account exists, so a closed tab no longer ends a referral. Every claim carries an email or a phone number, and either one finds them later. `expiry_date` is creation plus 6 months, stored in the row rather than run as a job. One referrer can hold many claims, and where several customers claim the same friend the earliest one pays. |
+| **`friends`** | onboarded friends | The name, contact and address typed at registration, and the row the four comparisons run against. Held apart from `patients` because at this point they are not one. |
+| **`grant_friend_discount`** | verification records | Checks the claimant is not already a patient before the £40 is granted. Each patient is compared as a whole person, never field by field. `manual_verification_needed` is generated from the matrix row rather than set by hand, and `verdict_note` freezes the reason as it read at the time. A constraint blocks release unless the claim is approved and inside its window. UK photo ID carries no number to dedupe on, so genuine conflicts go to a human. |
+| **`grant_patient_discount`** | order records | Decides whether the referrer gets their bonus. `first_claim` decides £80 or £40, and `referral_amount` accepts nothing else. A constraint blocks release unless the transaction succeeded, and a unique index refuses a second £80 to the same referrer whatever the code does. |
+| **`verification_matrix`** | the rule itself | The 16 rows every verdict is read from. The four booleans are the primary key, so every combination exists exactly once. It has no foreign keys: the answer is copied onto the decision, so editing the rule changes what happens next and not what already happened. |
 
-## A pharmacy can ask a better question than a shop can
+## The rule, in one line
 
-A shop has to match on an address, because an address is all it holds. A pharmacy holds patient
-records, so it can ask whether this is the same person. Those two tests disagree exactly where it
-hurts. A couple. A houseshare. A parent and an adult child.
+A shop can only match on an address, because an address is all it holds. A pharmacy holds patient
+records, so it can ask the better question: is this the same person? Those two tests disagree
+exactly where it hurts, at a couple, a houseshare, a parent and an adult child.
 
-**So the rule is one line: a human looks only when a first name and a last name both match an
-existing patient.** A shared address changes nothing. A shared postcode changes nothing. A shared
-bank card changes nothing. All three are recorded, shown, and ignored by the verdict.
-
-The whole rule is 16 rows in a table, not logic buried in code:
+**So: a human looks only when a first name and a last name both match an existing patient.** A
+shared address changes nothing. A shared postcode changes nothing. A shared bank card changes
+nothing. All three are recorded, shown, and ignored by the verdict.
 
 | first name | last name | address | postcode | verdict | why |
 |---|---|---|---|---|---|
@@ -51,44 +51,37 @@ The whole rule is 16 rows in a table, not logic buried in code:
 | no | no | no | no | approved | |
 
 [Read those 16 rows straight out of the live database.](https://doiyvwwvddgokurwyvvb.supabase.co/rest/v1/verification_matrix?select=first_name_match,last_name_match,address_match,postcode_match,approved,note&order=first_name_match.desc,last_name_match.desc,address_match.desc,postcode_match.desc&apikey=sb_publishable__nHann-Y9PXbsuaJVmcAxg__f8Y0Rvy)
-Change the rule and you edit a row, not a deploy. Nothing in the code decides this; the function
-looks up the row and stores what it found.
 
-Manual review exists because UK photo ID carries no number to match on, and it is 4 of the 16
-combinations. Each patient is compared as a whole person, never field by field. Two strangers who
-happen to share a first name and a surname between them do not trigger it. Without that, a common
-name would send most claims to review once the patient list is large.
+Manual review is 4 of the 16 combinations. Each patient is compared as a whole person, never field
+by field, so two strangers who happen to share a first name and a surname between them never
+trigger it.
 
-## The refusal they documented, running
+## The complaint, re-run
 
-Case 6 of the nineteen is the housemate case: same address, same postcode, two different people.
-Here is what the database recorded.
+A customer wrote publicly that Bolt refused him because a housemate at his address was already a
+customer. Case 6 in the seed data is that exact situation, two different people at one address, run
+through the rebuilt check. This is what the database recorded:
 
 | first name | last name | address | postcode | goes to a human | verdict |
 |---|---|---|---|---|---|
 | no | no | yes | yes | no | **approved** |
 
-Reason stored at the time: **unrelated housemates**. The address and the postcode both matched,
-both were recorded, and neither one decided anything.
+The address matched and the postcode matched. Both were recorded, and neither decided anything.
+Reason stored at the time: **unrelated housemates**.
 
-## Nineteen cases, decided inside the database
+## 19 cases, decided inside the database
 
-Six of the nineteen went to a human, and every one of them turned on a full name. Three matched an
-address or a postcode without matching both names. None of those three was refused.
+Six went to a human, and every one of them turned on a full name. Three matched an address or a
+postcode without matching both names, and none of the three was refused. Four end with nobody paid,
+each for a different reason: the contact already belongs to a patient, an existing patient claiming
+under a fresh email, a friend claimed twice where the earlier claim keeps it, and a referrer
+refused a second £80 by the database itself.
 
-**[`results.md`](results.md) is all nineteen in full**: every comparison made, every verdict, and
-the reason stored at the time. It is written by a script that reads the live tables, so it cannot
-drift away from what the system does.
+**[`results.md`](results.md) is all 19 in full**: every comparison made, every verdict, and the
+reason stored at the time. It is written by a script that reads the live tables, so it cannot drift
+from what the system actually does.
 
-## What it refuses to pay
-
-Four cases end with nobody paid, and each one is a different reason. Someone claims a contact that
-already belongs to a patient, so nobody new arrived. Someone claims under a fresh email as an
-existing patient, and the photo ID check catches it. Two customers claim the same friend, and the
-earlier claim keeps it while the later one is told nothing rather than told they lost. And a
-referrer who already has an 80 is refused a second one by the database itself.
-
-Two promises are held by partial unique indexes rather than by code that could race:
+## Two promises the database keeps by itself
 
 ```sql
 create unique index one_first_claim_per_referrer
@@ -98,75 +91,15 @@ create unique index one_release_per_friend
   on grant_friend_discount (friend_patient_id) where release_friend_discount;
 ```
 
-A referrer is paid 80 once, ever. A friend is released once, ever, no matter how many people
-claimed them. [`seed-cases.sql`](seed-cases.sql) attempts a second 80 on purpose and fails loudly
-if the database ever accepts it.
-
-## What this does not do
-
-It does not decide who gets asked to refer, or when. It does not touch the share moment, the
-message, or anything before the click. It starts at the claim and stops at the payout. Getting
-more people to refer is a different job from paying correctly the ones who already did.
-
-It also puts nothing in public. Sharing stays inside private 1 to 1 channels. Public posts naming
-prescription medicines are advertising, and the regulator ruled against four UK brands for exactly
-that in February 2026.
-
-## The six tables
-
-```mermaid
-erDiagram
-    patients ||--o{ claims : "whose link it was"
-    patients |o--o{ claims : "who arrived, set at the order"
-    claims ||--o| friends : ""
-    claims ||--o| grant_friend_discount : ""
-    claims ||--o| grant_patient_discount : ""
-```
-
-- `patients`, the account list. `successful_referrals` is counted from released payouts by a
-  trigger, never written by hand. `address_line` is not unique, on purpose.
-- `claims`, one row per link click, written before any account exists. `expiry_date` is creation
-  plus 6 months, a fact in the row rather than a job somebody runs.
-- `friends`, what the friend typed at registration.
-- `grant_friend_discount`, one verification per claim. `manual_verification_needed` and
-  `verdict_note` are both written from the matrix row that decided it. The rule lives in one
-  place, and the record keeps what was shown at the time.
-- `grant_patient_discount`, one payout decision per claim, carrying `referrer_id` so the index can
-  refuse a second 80.
-- `verification_matrix`, the 16 rows above. It has no foreign key to anything. The four booleans
-  look it up at decision time, and the answer is copied onto the decision. A later edit to the rule
-  cannot rewrite what a past reviewer was shown.
-
-A claim exists from the moment someone clicks, before any account does. That is the repair: today
-a referral is a browsing session, and a closed tab ends it.
-
-## Files, and the order they run
-
-The schema lives in [`supabase/migrations/`](supabase/migrations/) and is applied by Supabase's
-GitHub integration: a push to `main` runs any migration this project has not run yet. There are four:
-
-1. The six tables and both decision functions.
-2. `successful_referrals` becomes a real column, maintained by trigger.
-3. The write functions are closed to signed-in users, not only anonymous ones.
-4. Each patient is compared as a whole person rather than field by field.
-
-The data is seeded by hand, in this order, and both files are safe to re-run:
-
-1. [`seed-matrix.sql`](seed-matrix.sql), the 16 rows of the rule.
-2. [`seed-cases.sql`](seed-cases.sql), the nineteen cases as data. Delete it and the system still
-   stands.
-
-Then `node render-tables.mjs` reads the live tables and writes [`results.md`](results.md) and
-[`data/*.csv`](data/), which GitHub renders as sortable grids.
-
-[`tables.md`](tables.md) is the design, written before the SQL.
+A referrer is paid £80 once, ever. A friend is released once, ever, however many people claimed
+them. Neither is application code that could race. [`seed-cases.sql`](seed-cases.sql) attempts a
+second £80 on purpose and fails loudly if the database ever accepts it.
 
 ## Read it live
 
-No account, no terminal. The key in these links is the publishable one, which is meant to be
-public.
+No account, no terminal. The key in these links is the publishable one, which is meant to be public.
 
-- [The 20 claims, with both verdicts and the stored reason](https://doiyvwwvddgokurwyvvb.supabase.co/rest/v1/claims?select=friend_email,friend_phone,claim_status,grant_friend_discount(manual_verification_needed,approved,verdict_note,release_friend_discount),grant_patient_discount(first_claim,referral_amount,release_patient_discount)&order=creation_date&apikey=sb_publishable__nHann-Y9PXbsuaJVmcAxg__f8Y0Rvy)
+- [Every claim, with both verdicts and the stored reason](https://doiyvwwvddgokurwyvvb.supabase.co/rest/v1/claims?select=friend_email,friend_phone,claim_status,grant_friend_discount(manual_verification_needed,approved,verdict_note,release_friend_discount),grant_patient_discount(first_claim,referral_amount,release_patient_discount)&order=creation_date&apikey=sb_publishable__nHann-Y9PXbsuaJVmcAxg__f8Y0Rvy)
 - [The patients, with successful_referrals counted from released payouts](https://doiyvwwvddgokurwyvvb.supabase.co/rest/v1/patients?select=first_name,last_name,address_line,postcode,successful_referrals,customer_since&order=customer_since&apikey=sb_publishable__nHann-Y9PXbsuaJVmcAxg__f8Y0Rvy)
 - [Every verification, with the four comparisons](https://doiyvwwvddgokurwyvvb.supabase.co/rest/v1/grant_friend_discount?select=first_name_match,last_name_match,address_match,postcode_match,manual_verification_needed,manual_approved,approved,verdict_note,release_friend_discount&apikey=sb_publishable__nHann-Y9PXbsuaJVmcAxg__f8Y0Rvy)
 - [Every payout decision](https://doiyvwwvddgokurwyvvb.supabase.co/rest/v1/grant_patient_discount?select=transaction_success,first_claim,referral_amount,release_patient_discount&apikey=sb_publishable__nHann-Y9PXbsuaJVmcAxg__f8Y0Rvy)
@@ -175,6 +108,25 @@ Filtering works: add `&approved=eq.false` to the verifications, or `&referral_am
 payouts. Writing does not. Select is the only privilege granted to anonymous readers, so an insert
 returns 42501.
 
+## Scope
+
+It starts at the claim and stops at the payout. It does not decide who gets asked to refer, or
+when, and it does not touch the share moment or the message. Getting more people to refer is a
+different job from paying correctly the ones who already did.
+
+It also puts nothing in public. Sharing stays inside private 1 to 1 channels, because public posts
+naming prescription medicines are advertising, and the regulator ruled against four UK brands for
+exactly that in February 2026.
+
+## Files
+
+The schema is in [`supabase/migrations/`](supabase/migrations/), applied by Supabase's GitHub
+integration: a push to `main` runs any migration not yet run. Then the data is seeded by hand and
+both files are safe to re-run: [`seed-matrix.sql`](seed-matrix.sql) is the 16 rows of the rule,
+[`seed-cases.sql`](seed-cases.sql) is the 19 cases as data. `node render-tables.mjs` reads the live
+tables and writes [`results.md`](results.md) and [`data/*.csv`](data/), which GitHub renders as
+sortable grids. [`tables.md`](tables.md) is the design, written before the SQL.
+
 ## What is real and what is not
 
 The tables, the rule, both indexes and both decision functions are real. Every verdict was computed
@@ -182,7 +134,7 @@ in Postgres, not typed.
 
 The people are invented and the phone numbers come from Ofcom's test range.
 
-The 80 and 40 are Bolt's own published amounts, captured from their live referral page on
+The £80 and £40 are Bolt's own published amounts, captured from their live referral page on
 2026-07-23.
 
 The old rule is inferred from what customers described in public, and labelled as inference
